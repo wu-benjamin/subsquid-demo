@@ -1,5 +1,8 @@
 {
   "31337": {
     "walletContractAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+  },
+  "11155111": {
+    "walletContractAddress": "0x797B589267869bceB4fFa4c9Cf8De7a49F1BA810"
   }
 }
