@@ -1,7 +1,19 @@
-type Burn @entity {
-  id: ID!
+type User @entity {
+  id: ID! # address
+  balances: [BalanceSnapshot!] @derivedFrom(field: "user")
+  balance: BigInt!
+}
+
+type Tx @entity {
+  id: ID! # transaction hash
   block: Int!
-  address: String! @index
-  value: BigInt!
-  txHash: String!
+  balanceSnapshotUpdates: [BalanceSnapshot!] @derivedFrom(field: "tx")
+}
+
+type BalanceSnapshot @entity @index(fields: ["user", "timestamp"]) {
+  id: ID! # `${userAddress}-${txBlock}-${snapshotIndexInTx}`
+  user: User!
+  timestamp: DateTime!
+  balance: BigInt!
+  tx: Tx!
 }
