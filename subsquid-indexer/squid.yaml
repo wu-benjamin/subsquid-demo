@@ -1,18 +1,43 @@
 manifestVersion: subsquid.io/v0.1
-name: subsquid-indexer
+name: hypotenuse-indexer-demo-squid
 version: 1
-description: 'The very first evm squid from manifest  '
+description: 'A demo indexer for a tech talk at Hypotenuse Labs'
+
 build: 
+  node_version: 20
+  package_manager: npm
+
 deploy:
+  env:
+    RPC_ENDPOINT: ${{ secrets.RPC_ENDPOINT }}
+    WALLET_CONTRACT_ADDRESS: "0x797B589267869bceB4fFa4c9Cf8De7a49F1BA810"
+    START_BLOCK_NUMBER: 0
+    NUMBER_OF_CONFIRMATION_FOR_BLOCK_FINALITY: 75
+
+    GATEWAY_URL: "https://v2.archive.subsquid.io/network/ethereum-sepolia"
+    USE_ARCHIVE_GATEWAY: true
+    QUERY_ACCESS_TOKEN: ${{ secrets.QUERY_ACCESS_TOKEN }}
+    DISABLE_ACCESS_CONTROL: false
   addons:
     postgres: 
+      config:
+        statement_timeout: 60000
+        log_min_duration_statement: 5000
+        max_pred_locks_per_transaction: 64 # https://www.postgresql.org/docs/15/runtime-config-locks.html#GUC-MAX-PRED-LOCKS-PER-TRANSACTION
+        max_locks_per_transaction: 64 # https://www.postgresql.org/docs/15/runtime-config-locks.html#GUC-MAX-LOCKS-PER-TRANSACTION
   processor:
-    cmd:
-      - sqd
-      - process:prod
-    env:
-      RPC_ENDPOINT: ${{ secrets.RPC_ENDPOINT }}
+    cmd: [ "sqd", "process:prod" ]
   api:
-    cmd:
-      - sqd
-      - serve:prod
+    cmd: [ "sqd", "serve:prod" ]
+
+scale:
+  dedicated: false
+  addons:
+    postgres:
+      storage: 10G
+      profile: small
+  processor:
+    profile: small
+  api:
+    profile: small
+    replicas: 1
