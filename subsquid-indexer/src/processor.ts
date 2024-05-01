@@ -1,4 +1,3 @@
-import {assertNotNull} from '@subsquid/util-internal'
 import {
     BlockHeader,
     DataHandlerContext,
@@ -6,39 +5,58 @@ import {
     EvmBatchProcessorFields,
     Log as _Log,
     Transaction as _Transaction,
-} from '@subsquid/evm-processor'
-
-export const processor = new EvmBatchProcessor()
-    // Lookup archive by the network name in Subsquid registry
-    // See https://docs.subsquid.io/evm-indexing/supported-networks/
-    .setGateway('https://v2.archive.subsquid.io/network/ethereum-mainnet')
-    // Chain RPC endpoint is required for
-    //  - indexing unfinalized blocks https://docs.subsquid.io/basics/unfinalized-blocks/
-    //  - querying the contract state https://docs.subsquid.io/evm-indexing/query-state/
-    .setRpcEndpoint({
-        // Set the URL via .env for local runs or via secrets when deploying to Subsquid Cloud
-        // https://docs.subsquid.io/deploy-squid/env-variables/
-        url: assertNotNull(process.env.RPC_ENDPOINT),
-        // More RPC connection options at https://docs.subsquid.io/evm-indexing/configuration/initialization/#set-data-source
-        rateLimit: 10
+  } from "@subsquid/evm-processor";
+  
+  import * as walletAbi from "./abi/Wallet";
+  import {
+      RPC_ENDPOINT,
+      WALLET_CONTRACT_ADDRESS,
+      START_BLOCK_NUMBER,
+      NUMBER_OF_CONFIRMATION_FOR_BLOCK_FINALITY,
+      USE_ARCHIVE_GATEWAY,
+      GATEWAY_URL,
+  } from "./utils/env";
+  
+  export const processor = new EvmBatchProcessor()
+    .setRpcEndpoint(RPC_ENDPOINT)
+    .setFinalityConfirmation( // https://docs.subsquid.io/sdk/reference/processors/evm-batch/general/#set-finality-confirmation
+      NUMBER_OF_CONFIRMATION_FOR_BLOCK_FINALITY
+    )
+    .addLog({
+      address: [WALLET_CONTRACT_ADDRESS],
+      topic0: [
+          walletAbi.events.Deposit.topic,
+          walletAbi.events.WithdrawAll.topic,
+      ],
+      transaction: true,
     })
-    .setFinalityConfirmation(75)
     .setFields({
-        transaction: {
-            from: true,
-            value: true,
-            hash: true,
-        },
+      transaction: {
+        from: true,
+        to: true,
+        hash: true,
+        value: true,
+        gas: true,
+        gasPrice: true,
+      },
+      log: {
+        topics: true,
+        data: true,
+        address: true,
+        transactionHash: true,
+      },
     })
     .setBlockRange({
-        from: 0,
-    })
-    .addTransaction({
-        to: ['0x0000000000000000000000000000000000000000'],
-    })
-
-export type Fields = EvmBatchProcessorFields<typeof processor>
-export type Block = BlockHeader<Fields>
-export type Log = _Log<Fields>
-export type Transaction = _Transaction<Fields>
-export type ProcessorContext<Store> = DataHandlerContext<Store, Fields>
+      from: START_BLOCK_NUMBER,
+    });
+  
+  if (USE_ARCHIVE_GATEWAY) {
+      processor.setGateway(GATEWAY_URL); // https://docs.subsquid.io/subsquid-network/reference/evm-networks/
+  }
+  
+  export type Fields = EvmBatchProcessorFields<typeof processor>
+  export type Block = BlockHeader<Fields>
+  export type Log = _Log<Fields>
+  export type Transaction = _Transaction<Fields>
+  export type ProcessorContext<Store> = DataHandlerContext<Store, Fields>
+  
